@@ -76,6 +76,7 @@ class VehicleGen:
         ###randomly select from origins, these are where vehicles are generated
         v_schedule = [ np.random.choice(self.origins, size=int(self.scale*n_veh), replace = True) 
                        if n_veh > 0 else [] for n_veh in v_schedule  ]
+        print(f'@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ v number is:\n{sum([len(item) for item in v_schedule])}')
         ###fancy iterator, just so we can call next for sequential access
         return v_schedule.__iter__() 
 

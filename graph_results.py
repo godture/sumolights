@@ -188,7 +188,7 @@ def graph_travel_time(labels, colours, fp, save_dir):
 
     for i, d in enumerate(data_order):
         text = '('+str(int(np.mean(data[i])))+', '+str(int( np.std(data[i]) ) )+', '+str(int( np.median(data[i]) ) )+r"$)$"
-        ax.text(i+1.1, 300, text, color= c[i])
+        ax.text(i+1.1, 10, text, color= c[i])
 
     #f.suptitle('Travel Time')                                                        
     #display graph                                                                   
@@ -323,7 +323,7 @@ def alias(data, a):
     alias_data = []
     for d in data:
         #alias data timeseries
-        alias_data.append( np.array([np.sum(d[i*a:(i+1)*a]) for i in range(m) ]) )
+        alias_data.append( np.array([np.mean(d[i*a:(i+1)*a]) for i in range(m) ]) )
 
     return np.stack(alias_data)
     #return np.stack([np.sum(data[i*a:(i+1)*a]) for i in range(stop) ])
