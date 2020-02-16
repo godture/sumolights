@@ -83,7 +83,7 @@ class VehicleGen:
     
     def addVehicle(self, id_route, id_vehicle_type, time_depart, depart_speed='desired'): # the option 'desired' for departSpeed is only available since ubuntu 18.04, use 'max' for ubuntu version 16.04
         id_v = 'v_' + id_route + '_' + str(self.vehicles_created)	# !!! naming rule for vehicle id: v_<route id>_<vehicle id>
-        self.conn.vehicle.add(id_v, id_route, 'car_a', depart=time_depart, departLane="best")
+        self.conn.vehicle.add(id_v, id_route, depart=time_depart, departLane="best")
         self.vehicles_created += 1
         self.conn.vehicle.setColor(id_v, self.color_routes[id_route])
     
@@ -96,15 +96,16 @@ class VehicleGen:
                              self.routes[8]: (255,0,0),self.routes[9]: (0,255,0), self.routes[10]: (255,255,0), self.routes[11]: (255,0,0)} # colors
         v_gen_file = None
         if type == "linear":
-            list_files = os.listdir("/home/yan/work_spaces/sumolights/tf_test/linear")
+            root_dir   = os.getcwd()
+            list_files = os.listdir(root_dir + "/tf_test/linear")
             list_files = [item for item in list_files if item[-3:]=='.vg']
             tf_level = list_files[0][:4]
-            v_gen_file = open("/home/yan/work_spaces/sumolights/tf_test/linear/" + tf_level + '_' + self.demand[-2:]+'.vg', 'rb')
+            v_gen_file = open(root_dir + "/tf_test/linear/" + tf_level + '_' + self.demand[-2:]+'.vg', 'rb')
             #tf_file = open("/home/yan/work_spaces/sumolights/tf_test/linear/" + np.random.choice(list_files), 'rb')
         elif type == "real":
-            list_files = os.listdir("/home/yan/work_spaces/sumolights/tf_test/real")
+            list_files = os.listdir(root_dir + "/tf_test/real")
             list_files = [item for item in list_files if item[-3:]=='.vg']
-            v_gen_file = open("/home/yan/work_spaces/sumolights/tf_test/real/" + np.random.choice(list_files), 'rb')
+            v_gen_file = open(root_dir + "/tf_test/real/" + np.random.choice(list_files), 'rb')
         start_time_routes = pk.load(v_gen_file)
         print(f'################# v_gen_file is:\n {v_gen_file}')
         print(f'@@@@@@@@@@@@@ length start_time_routes is: \n{len(start_time_routes)}')
@@ -125,7 +126,7 @@ class VehicleGen:
         '''
         
         for route in self.routes:
-            [self.addVehicle(route, 'car_a', start_time) for start_time in start_time_routes[route]]
+            [self.addVehicle(route, None, start_time) for start_time in start_time_routes[route]]
         self.stop_gen = True
         
     def gen_linear_cycle(self):
