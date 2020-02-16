@@ -1,0 +1,15 @@
+<routes>
+            <route id="r00_tl" edges="-gneE9 -gneE8 gneE10 -gneE11" />
+            <route id="r01_tb" edges="-gneE9 -gneE8 -gneE12 -gneE13" /> 
+            <route id="r02_tr" edges="-gneE9 -gneE8 -gneE7 -gneE6" />
+            <route id="r03_rt" edges="gneE6 gneE7 gneE8 gneE9" />
+            <route id="r04_rl" edges="gneE6 gneE7 gneE10 -gneE11" />
+            <route id="r05_rb" edges="gneE6 gneE7 -gneE12 -gneE13" />
+            <route id="r06_br" edges="gneE13 gneE12 -gneE7 -gneE6" />
+            <route id="r07_bt" edges="gneE13 gneE12 gneE8 gneE9" />
+            <route id="r08_bl" edges="gneE13 gneE12 gneE10 -gneE11" />
+            <route id="r09_lb" edges="gneE11 -gneE10 -gneE12 -gneE13" />
+            <route id="r10_lr" edges="gneE11 -gneE10 -gneE7 -gneE6" />
+            <route id="r11_lt" edges="gneE11 -gneE10 gneE8 gneE9" />
+            
+</routes>

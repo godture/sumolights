@@ -15,6 +15,9 @@ def parse_cl_args():
     ##sumo params
     parser.add_argument("-sim", type=str, default='single', dest='sim', help='simulation scenario, default: lust, options:lust, single, double')
     parser.add_argument("-tsc", type=str, default='websters', dest='tsc', help='traffic signal control algorithm, default:websters; options:sotl, maxpressure, dqn, ddpg'  )
+    
+    #demand
+    parser.add_argument("-demand", type=str, default='dynamic', dest='demand', help='vehicle demand generation patter, single limits vehicle network population to one, dynamic creates changing vehicle population, default:dynamic, options:single, dynamic, linear, real')
 
     args = parser.parse_args()
     return args
@@ -48,7 +51,7 @@ def create_hp_cmds(args, hp_order, hp):
     if args.tsc == 'ddpg' or args.tsc == 'dqn':
         #train cmd for rl tsc
         #need to learn before can evaluate hp
-        hp_cmds.append(cmd_str+hp_str+'-mode train -save -n '+str(args.n)+' -l '+str(args.l))
+        hp_cmds.append(cmd_str+hp_str+'-mode train -save -n '+str(args.n)+' -l '+str(args.l) + ' -demand '+'dynamic')
 
     #test cmd runs 'n' sims to gen results
     hp_cmds.append(cmd_str+hp_str+'-mode test -n '+str(args.n+args.l))
@@ -116,23 +119,32 @@ def main():
     fname = get_time_now()
     hp_fp = path+fname+'.csv'
     write_line_to_file(hp_fp, 'a+', ','.join(hp_order)+',mean,std,mean+std' )
-
+    
     #run each set of hp from cartesian product
-    for hp in hp_set:                                                                                                                                                                                                    
+    for hp in hp_set:    
         hp_cmds = create_hp_cmds(args, hp_order, hp)
         #print(hp_cmds)
-        for cmd in hp_cmds:
-            os.system(cmd)
-        #read travel times, store mean and std for determining best hp set
-        hp_str = ','.join([str(h) for h in hp])
-        travel_times = get_hp_results(metrics_fp+'/traveltime/')
+        if args.demand == 'linear':
+            n_repeat = 50
+        else:
+            n_repeat = 1
+        travel_times = []
+        # only train the ddpg and dqn with the predefined sine wave
+        if args.tsc == 'ddpg' or args.tsc == 'dqn':
+            os.system(hp_cmds[0])
+        for i in range(n_repeat):
+            cmd_test = hp_cmds[-1] + ' -demand '+'linear_' + str(i).zfill(2)
+            os.system(cmd_test)
+            #read travel times, store mean and std for determining best hp set
+            hp_str = ','.join([str(h) for h in hp])
+            travel_times += get_hp_results(metrics_fp+'/traveltime/')
+            #remove all metrics for most recent hp
+            shutil.rmtree(metrics_fp)
         hp_travel_times[hp_str] = {'mean':int(np.mean(travel_times)), 'std':int(np.std(travel_times))}
         write_temp_hp(hp_str, hp_travel_times[hp_str], hp_fp)
         #generate_returns(tsc_str, 'metrics/', hp_str)
         save_hp_performance(travel_times, 'hp/'+tsc_str+'/', hp_str) 
-        #remove all metrics for most recent hp
-        shutil.rmtree(metrics_fp)
-
+        
     #remove temp hp and write ranked final results
     os.remove(hp_fp)
     rank_hp(hp_travel_times, hp_order, tsc_str, hp_fp)

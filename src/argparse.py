@@ -17,14 +17,14 @@ def parse_cl_args():
     parser.add_argument("-simlen", type=int, default=10800, dest='sim_len', help='length of simulation in seconds/steps')
     parser.add_argument("-nogui", default=False, action='store_true', dest='nogui', help='disable gui, default: False')
     parser.add_argument("-scale", type=float, default=1.4, dest='scale', help='vehicle generation scale parameter, higher values generates more vehicles, default: 1.0')
-    parser.add_argument("-demand", type=str, default='dynamic', dest='demand', help='vehicle demand generation patter, single limits vehicle network population to one, dynamic creates changing vehicle population, default:dynamic, options:single, dynamic')
+    parser.add_argument("-demand", type=str, default='dynamic', dest='demand', help='vehicle demand generation patter, single limits vehicle network population to one, dynamic creates changing vehicle population, default:dynamic, options:single, dynamic, linear, real')
 
     parser.add_argument("-offset", type=float, default=0.25, dest='offset', help='max sim offset fraction of total sim length, default: 0.3')
 
     #shared tsc params
     parser.add_argument("-gmin", type=int, default=5, dest='g_min', help='minimum green phase time (s), default: 5')
-    parser.add_argument("-y", type=int, default=2, dest='y', help='yellow change phase time (s), default: 2')
-    parser.add_argument("-r", type=int, default=3, dest='r', help='all red stop phase time (s), default: 3')
+    parser.add_argument("-y", type=int, default=3, dest='y', help='yellow change phase time (s), default: 3')
+    parser.add_argument("-r", type=int, default=2, dest='r', help='all red stop phase time (s), default: 2')
 
     #websters params
     parser.add_argument("-cmin", type=int, default=60, dest='c_min', help='minimum cycle time (s), default: 60')
