@@ -9,7 +9,7 @@ def parse_cl_args():
     parser = argparse.ArgumentParser()
 
     #multi proc params
-    parser.add_argument("-n", type=int, default=os.cpu_count()-1, dest='n', help='number of sim procs (parallel simulations) generating experiences, default: os.cpu_count()-1')
+    parser.add_argument("-n", type=int, default=7, dest='n', help='number of sim procs (parallel simulations) generating experiences, default: 7')
     parser.add_argument("-l", type=int, default=1, dest='l', help='number of parallel learner procs producing updates, default: 1')
 
     ##sumo params
