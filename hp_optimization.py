@@ -137,7 +137,7 @@ def main():
                 cmd_test = hp_cmds[-1] + ' -demand ' + 'linear_' + str(i).zfill(2)
             elif args.demand == 'dynamic':
                 cmd_test = hp_cmds[-1] + ' -demand ' + 'dynamic'
-            elif args.demand = 'real':
+            elif args.demand == 'real':
                 cmd_test = hp_cmds[-1] + ' -demand ' + 'real'
             else:
                 assert False, 'Please only give demand: linear, dynamic or real'

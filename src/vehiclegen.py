@@ -62,10 +62,10 @@ class VehicleGen:
         sine = 5.1*np.sin(t)+6 # headway 0.9~6s, tf 4000~600vph
         flow_rate_routes = []
         flow_inputs = 3600/sine
-        if mode=='test':
+        if self.mode=='test':
             random_shift=0
-        elif mode=='train':
-            random_shift=np.random.randint(0, sim_len)
+        elif self.mode=='train':
+            random_shift=np.random.randint(0, self.sim_len)
         else:
             assert False, 'Wrong mode given to tflow_genders_sine'
         flow_inputs = np.concatenate((flow_inputs[random_shift:], flow_inputs[:random_shift]))
