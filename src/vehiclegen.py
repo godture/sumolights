@@ -77,6 +77,7 @@ class VehicleGen:
         for flow_input in flow_inputs:
             flow_rate_routes.append([flow_input*ratio for ratio in demand_ratios])
             
+        start_time_routes = {route:[] for route in self.routes}
         for i in range(len(self.routes)):
             route = self.routes[i]
             t_generate = 0
@@ -92,6 +93,7 @@ class VehicleGen:
                     
         for route in self.routes:
             [self.addVehicle(route, None, start_time) for start_time in start_time_routes[route]]
+        print(f'tatol vehicle number: {sum([len(start_time_routes[route]) for route in start_time_routes])}')
             
         self.stop_gen = True
         
