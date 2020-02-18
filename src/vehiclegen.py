@@ -31,6 +31,13 @@ class VehicleGen:
         self.t = 0
         self.stop_gen = False
         self.demand = demand
+        self.mode = mode
+        
+        self.routes = self.conn.route.getIDList()
+        self.routes = [route for route in self.routes if route[0]=='r']
+        self.color_routes = {self.routes[0]: (0,255,0), self.routes[1]: (255,255,0), self.routes[2]: (255,0,0), self.routes[3]: (0,255,0), 
+                             self.routes[4]: (255,255,0), self.routes[5]: (255,0,0), self.routes[6]: (0,255,0), self.routes[7]: (255,255,0), 
+                             self.routes[8]: (255,0,0),self.routes[9]: (0,255,0), self.routes[10]: (255,255,0), self.routes[11]: (255,0,0)} # colors
 
         ###determine what function we run every step to 
         ###generate vehicles into sim
@@ -50,13 +57,53 @@ class VehicleGen:
         self.t += 1
 
     def gen_dynamic(self):
+        # correct generating sine wave traffic cycle for both training and test
+        t = np.linspace(1*np.pi, 2*np.pi, self.sim_len)
+        sine = 5.1*np.sin(t)+6 # headway 0.9~6s, tf 4000~600vph
+        flow_rate_routes = []
+        flow_inputs = 3600/sine
+        if mode=='test':
+            random_shift=0
+        elif mode=='train':
+            random_shift=np.random.randint(0, sim_len)
+        else:
+            assert False, 'Wrong mode given to tflow_genders_sine'
+        flow_inputs = np.concatenate((flow_inputs[random_shift:], flow_inputs[:random_shift]))
+        flow_inputs[-60:] = 0
+        
+        demand_ratios = [0.5, 1.5, 1., 0.5, 1.5, 1., 0.5, 1.5, 1., 0.5, 1.5, 1.]
+        ratio_sum = sum(demand_ratios)
+        demand_ratios = [ratio/ratio_sum for ratio in demand_ratios]
+        for flow_input in flow_inputs:
+            flow_rate_routes.append([flow_input*ratio for ratio in demand_ratios])
+            
+        for i in range(len(self.routes)):
+            route = self.routes[i]
+            t_generate = 0
+            while t_generate < len(flow_rate_routes):
+                if flow_rate_routes[t_generate][i] < F_RATES[0]:
+                    t_generate += 1
+                elif len(start_time_routes[route]) == 0:
+                    start_time_routes[route].append(t_generate + self.headway_j(flow_rate_routes[t_generate][i]))
+                    t_generate = int(round(start_time_routes[route][-1]))
+                else:
+                    start_time_routes[route].append(start_time_routes[route][-1] + self.headway_j(flow_rate_routes[t_generate][i]))
+                    t_generate = int(round(start_time_routes[route][-1]))
+                    
+        for route in self.routes:
+            [self.addVehicle(route, None, start_time) for start_time in start_time_routes[route]]
+            
+        self.stop_gen = True
+        
         ###get next set of edges from v schedule, use them to add new vehicles
         ###this is batch vehicle generation
+        '''
         try:
             new_veh_edges = next(self.v_schedule)
             self.gen_veh( new_veh_edges  )
         except StopIteration:
             print('no vehicles left')
+        '''
 #############################################################################
 
     def headway_j(self,flow_rate):
@@ -89,11 +136,6 @@ class VehicleGen:
     
     # only for test mode, not for training  
     def gen_fr_cycle(self, type):
-        self.routes = self.conn.route.getIDList()
-        self.routes = [route for route in self.routes if route[0]=='r']
-        self.color_routes = {self.routes[0]: (0,255,0), self.routes[1]: (255,255,0), self.routes[2]: (255,0,0), self.routes[3]: (0,255,0), 
-                             self.routes[4]: (255,255,0), self.routes[5]: (255,0,0), self.routes[6]: (0,255,0), self.routes[7]: (255,255,0), 
-                             self.routes[8]: (255,0,0),self.routes[9]: (0,255,0), self.routes[10]: (255,255,0), self.routes[11]: (255,0,0)} # colors
         v_gen_file = None
         if type == "linear":
             root_dir   = os.getcwd()
