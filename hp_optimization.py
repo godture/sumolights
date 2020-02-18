@@ -133,7 +133,14 @@ def main():
         if args.tsc == 'ddpg' or args.tsc == 'dqn':
             os.system(hp_cmds[0])
         for i in range(n_repeat):
-            cmd_test = hp_cmds[-1] + ' -demand '+'linear_' + str(i).zfill(2)
+            if args.demand == 'linear':
+                cmd_test = hp_cmds[-1] + ' -demand ' + 'linear_' + str(i).zfill(2)
+            elif args.demand == 'dynamic':
+                cmd_test = hp_cmds[-1] + ' -demand ' + 'dynamic'
+            elif args.demand = 'real':
+                cmd_test = hp_cmds[-1] + ' -demand ' + 'real'
+            else:
+                assert False, 'Please only give demand: linear, dynamic or real'
             os.system(cmd_test)
             #read travel times, store mean and std for determining best hp set
             hp_str = ','.join([str(h) for h in hp])

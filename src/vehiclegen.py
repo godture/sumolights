@@ -44,7 +44,7 @@ class VehicleGen:
         if demand == 'single':
             self.gen_vehicles = self.gen_single
         elif demand == 'dynamic' or mode =='train':  # use the sine wave to train rl-tsc in framework
-            self.v_schedule = self.gen_dynamic_demand(mode)
+            #self.v_schedule = self.gen_dynamic_demand(mode)
             self.gen_vehicles = self.gen_dynamic
         elif demand[:6] == 'linear':
             self.gen_vehicles = self.gen_linear_cycle
