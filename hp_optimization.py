@@ -1,6 +1,7 @@
 import itertools, time, os, argparse, shutil
 
 import numpy as np
+import pickle
 
 from src.picklefuncs import load_data, save_data
 from src.helper_funcs import check_and_make_dir, write_lines_to_file, write_line_to_file, get_time_now
@@ -30,7 +31,7 @@ def get_hp_dict(tsc_str):
     #elif tsc_str == 'sotl':
     #    return {'-theta':[10,20,30,40,50], '-mu':[0,5,10,15], '-omega':[0,5,10,15]}
     if tsc_str == 'websters':
-        return {'-cmin':[40, 60, 80], '-cmax':[160, 180, 200], '-satflow':[0.3, 0.38, 0.44], '-f':[600, 900, 1800]}
+        return {'-cmin':[40, 60, 80], '-cmax':[160, 180, 200], '-satflow':[0.3, 0.38, 0.44], '-f':[600, 900]}
     elif tsc_str == 'maxpressure':
         return {'-gmin':np.arange(,)}
     elif tsc_str == 'uniform': 
@@ -68,13 +69,18 @@ def get_hp_results(fp):
 
     return travel_times
 
-def rank_hp(hp_fitness, hp_order, tsc_str, fp):
+def rank_hp(hp_fitness, hp_order, tsc_str, fp, tt_hp):
     #fitness is the mean+std of the travel time
     ranked_hp_fitness = [ (hp, hp_fitness[hp]['mean']+hp_fitness[hp]['std'], hp_fitness[hp]['n_v_pass']) for hp in hp_fitness]
     ranked_hp_fitness = sorted(ranked_hp_fitness, key=lambda x:x[1]) 
     print('Best hyperparams set for '+str(tsc_str))
     print(hp_order)
     print(ranked_hp_fitness[0])
+    
+    # write tt_hp of best hp to corresponding file
+    tt_file = open(fp[:-4]+'.tt', 'wb')
+    pickle.dump(tt_hp[ranked_hp_fitness[0][0]], tt_file)
+    tt_file.close()
 
     #write all hps to file
     #write header line
@@ -123,6 +129,7 @@ def main():
         hp_fp = path+fname+'.csv'
         write_line_to_file(hp_fp, 'a+', ','.join(hp_order)+',mean,std,mean+std' )
         #run each set of hp from cartesian product
+        tt_hp = {} # store all travel_times for corresponding hp
         for hp in hp_set:    
             hp_cmds = create_hp_cmds(args, hp_order, hp)
             #print(hp_cmds)
@@ -143,6 +150,10 @@ def main():
             #read travel times, store mean and std for determining best hp set
             hp_str = ','.join([str(h) for h in hp])
             travel_times += get_hp_results(metrics_fp+'/traveltime/')
+            tt_hp[hp_str] = travel_times
+            # !!!!!!!!!! the travel_times is cumulated in 8 processes
+            
+            
             n_v_pass = len(travel_times)
             #remove all metrics for most recent hp
             shutil.rmtree(metrics_fp)
@@ -153,7 +164,7 @@ def main():
 
         #remove temp hp and write ranked final results
         os.remove(hp_fp)
-        rank_hp(hp_travel_times, hp_order, tsc_str, hp_fp)
+        rank_hp(hp_travel_times, hp_order, tsc_str, hp_fp, tt_hp)
         
         
         
@@ -161,7 +172,7 @@ def main():
         
         # ??? 根据30 cycle 的结果调整hyper parameter 的范围，主要是maxpressure 和 uniform
         
-        # ?????? n_vehilce_passed
+        # ?????? n_vehilce_passed 
         # ?????? n_vehilce_passed
         # ?????? n_vehilce_passed
         # ?????? n_vehilce_passed
