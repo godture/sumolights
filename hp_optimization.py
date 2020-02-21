@@ -23,18 +23,18 @@ def parse_cl_args():
     return args
 
 def get_hp_dict(tsc_str):
-    if tsc_str == 'dqn':
-        return {'-lr':[ 0.0001, 0.00005], '-lre':[0.0001, 0.000001, 0.0000001, 0.00000001], '-updates':[15000], '-batch':[32], '-nreplay':[15000], '-nsteps':[1,2], '-n_hidden':[3], '-target_freq':[32,64,128], '-gmin':[5,10]}
-    elif tsc_str == 'ddpg':
-        return {'-lr':[ 0.0001, 0.00005], '-lre':[0.0001, 0.000001, 0.00000001], '-updates':[15000], '-batch':[32], '-nreplay':[15000], '-tau':[0.01, 0.005], '-nsteps':[1], '-lrc':[ 0.0005, 0.0001], '-n_hidden':[3], '-target_freq':[1,16,64]}
-    elif tsc_str == 'sotl':
-        return {'-theta':[10,20,30,40,50], '-mu':[0,5,10,15], '-omega':[0,5,10,15]}
-    elif tsc_str == 'websters':
+    #if tsc_str == 'dqn':
+    #    return {'-lr':[ 0.0001, 0.00005], '-lre':[0.0001, 0.000001, 0.0000001, 0.00000001], '-updates':[15000], '-batch':[32], '-nreplay':[15000], '-nsteps':[1,2], '-n_hidden':[3], '-target_freq':[32,64,128], '-gmin':[5,10]}
+    #elif tsc_str == 'ddpg':
+    #    return {'-lr':[ 0.0001, 0.00005], '-lre':[0.0001, 0.000001, 0.00000001], '-updates':[15000], '-batch':[32], '-nreplay':[15000], '-tau':[0.01, 0.005], '-nsteps':[1], '-lrc':[ 0.0005, 0.0001], '-n_hidden':[3], '-target_freq':[1,16,64]}
+    #elif tsc_str == 'sotl':
+    #    return {'-theta':[10,20,30,40,50], '-mu':[0,5,10,15], '-omega':[0,5,10,15]}
+    if tsc_str == 'websters':
         return {'-cmin':[40, 60, 80], '-cmax':[160, 180, 200], '-satflow':[0.3, 0.38, 0.44], '-f':[600, 900, 1800]}
     elif tsc_str == 'maxpressure':
-        return {'-gmin':np.arange(5,26)}
+        return {'-gmin':np.arange(,)}
     elif tsc_str == 'uniform': 
-        return {'-gmin':np.arange(5,26)}
+        return {'-gmin':np.arange(,)}
     else:
         #raise not found exceptions
         assert 0, 'Error: Supplied traffic signal control argument type '+str(tsc_str)+' does not exist.'
@@ -70,19 +70,19 @@ def get_hp_results(fp):
 
 def rank_hp(hp_fitness, hp_order, tsc_str, fp):
     #fitness is the mean+std of the travel time
-    ranked_hp_fitness = [ (hp, hp_fitness[hp]['mean']+hp_fitness[hp]['std']) for hp in hp_fitness]
-    ranked_hp_fitness = sorted(ranked_hp_fitness, key=lambda x:x[-1]) 
+    ranked_hp_fitness = [ (hp, hp_fitness[hp]['mean']+hp_fitness[hp]['std'], hp_fitness[hp]['n_v_pass']) for hp in hp_fitness]
+    ranked_hp_fitness = sorted(ranked_hp_fitness, key=lambda x:x[1]) 
     print('Best hyperparams set for '+str(tsc_str))
     print(hp_order)
     print(ranked_hp_fitness[0])
 
     #write all hps to file
     #write header line
-    lines = [','.join(hp_order)+',mean,std,mean+std']
+    lines = [','.join(hp_order)+',mean,std,mean+std,n_v_pass_all_processes']
     #rest of lines are ranked hyperparams
     for hp in ranked_hp_fitness:
         hp_str = hp[0]
-        lines.append( hp_str+','+str(hp_fitness[hp_str]['mean'])+','+str(hp_fitness[hp_str]['std'])+','+str(hp[1]))
+        lines.append( hp_str+','+str(hp_fitness[hp_str]['mean'])+','+str(hp_fitness[hp_str]['std'])+','+str(hp[1])+','+str(hp[2]))
     
     write_lines_to_file(fp, 'a+', lines)
 
@@ -116,16 +116,94 @@ def main():
     #where to print hp results
     path = 'hyperparams/'+tsc_str+'/'
     check_and_make_dir(path)
-    fname = get_time_now()
-    hp_fp = path+fname+'.csv'
-    write_line_to_file(hp_fp, 'a+', ','.join(hp_order)+',mean,std,mean+std' )
     
+    # hp_optimize for each linear cycle
+    for idx_cycle in range(30):
+        fname = 'cycle_'+str(idx_cycle).zfill(2)
+        hp_fp = path+fname+'.csv'
+        write_line_to_file(hp_fp, 'a+', ','.join(hp_order)+',mean,std,mean+std' )
+        #run each set of hp from cartesian product
+        for hp in hp_set:    
+            hp_cmds = create_hp_cmds(args, hp_order, hp)
+            #print(hp_cmds)
+            travel_times = []
+            # only train the ddpg and dqn with the predefined sine wave
+            if args.tsc == 'ddpg' or args.tsc == 'dqn':
+                os.system(hp_cmds[0])
+
+            if args.demand == 'linear':
+                cmd_test = hp_cmds[-1] + ' -demand ' + 'linear_' + str(idx_cycle).zfill(2)
+            elif args.demand == 'dynamic':
+                cmd_test = hp_cmds[-1] + ' -demand ' + 'dynamic'
+            elif args.demand == 'real':
+                cmd_test = hp_cmds[-1] + ' -demand ' + 'real'
+            else:
+                assert False, 'Please only give demand: linear, dynamic or real'
+            os.system(cmd_test)
+            #read travel times, store mean and std for determining best hp set
+            hp_str = ','.join([str(h) for h in hp])
+            travel_times += get_hp_results(metrics_fp+'/traveltime/')
+            n_v_pass = len(travel_times)
+            #remove all metrics for most recent hp
+            shutil.rmtree(metrics_fp)
+            hp_travel_times[hp_str] = {'mean':int(np.mean(travel_times)), 'std':int(np.std(travel_times)), 'n_v_pass':n_v_pass}
+            write_temp_hp(hp_str, hp_travel_times[hp_str], hp_fp)
+            #generate_returns(tsc_str, 'metrics/', hp_str)
+            save_hp_performance(travel_times, 'hp/'+tsc_str+'/', hp_str) 
+
+        #remove temp hp and write ranked final results
+        os.remove(hp_fp)
+        rank_hp(hp_travel_times, hp_order, tsc_str, hp_fp)
+        
+        
+        
+        # ??? 记得把simlen 调到3600
+        
+        # ??? 根据30 cycle 的结果调整hyper parameter 的范围，主要是maxpressure 和 uniform
+        
+        # ?????? n_vehilce_passed
+        # ?????? n_vehilce_passed
+        # ?????? n_vehilce_passed
+        # ?????? n_vehilce_passed
+        # ?????? n_vehilce_passed
+        # ?????? n_vehilce_passed
+        # ?????? n_vehilce_passed
+        
+        
+        
+        # ???? 找个地方把每个cycle 的best hyperparameter， mean, std, n_vehilce_passed 存起来
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        print('All hyperparamers performance can be viewed at: '+str(hp_fp))
+
+        print('TOTAL HP SEARCH TIME')
+        secs = time.time()-start
+        print(str(int(secs/60.0))+' minutes ')
+    '''
     #run each set of hp from cartesian product
     for hp in hp_set:    
         hp_cmds = create_hp_cmds(args, hp_order, hp)
         #print(hp_cmds)
         if args.demand == 'linear':
-            n_repeat = 50
+            n_repeat = 30
         else:
             n_repeat = 1
         travel_times = []
@@ -160,6 +238,8 @@ def main():
     print('TOTAL HP SEARCH TIME')
     secs = time.time()-start
     print(str(int(secs/60.0))+' minutes ')
+    
+    '''
 
 if __name__ == '__main__':
     main()

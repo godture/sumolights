@@ -152,7 +152,7 @@ class VehicleGen:
             v_gen_file = open(root_dir + "/tf_test/real/" + np.random.choice(list_files), 'rb')
         start_time_routes = pk.load(v_gen_file)
         print(f'################# v_gen_file is:\n {v_gen_file}')
-        print(f'@@@@@@@@@@@@@ length start_time_routes is: \n{len(start_time_routes)}')
+        print(f'@@@@@@@@@@@@@ vehilce amount is: \n{sum([len(start_time_routes[key]) for key in start_time_routes])}')
         print(f'$$$$$$$$$$$$$ routs are:\n{self.routes}')
         '''
         for i in range(len(self.routes)):
