@@ -10,7 +10,7 @@ def parse_cl_args():
     parser = argparse.ArgumentParser()
 
     #multi proc params
-    parser.add_argument("-n", type=int, default=7, dest='n', help='number of sim procs (parallel simulations) generating experiences, default: 7')
+    parser.add_argument("-n", type=int, default=9, dest='n', help='number of sim procs (parallel simulations) generating experiences, default: 7')
     parser.add_argument("-l", type=int, default=1, dest='l', help='number of parallel learner procs producing updates, default: 1')
 
     ##sumo params
@@ -24,18 +24,12 @@ def parse_cl_args():
     return args
 
 def get_hp_dict(tsc_str):
-    #if tsc_str == 'dqn':
-    #    return {'-lr':[ 0.0001, 0.00005], '-lre':[0.0001, 0.000001, 0.0000001, 0.00000001], '-updates':[15000], '-batch':[32], '-nreplay':[15000], '-nsteps':[1,2], '-n_hidden':[3], '-target_freq':[32,64,128], '-gmin':[5,10]}
-    #elif tsc_str == 'ddpg':
-    #    return {'-lr':[ 0.0001, 0.00005], '-lre':[0.0001, 0.000001, 0.00000001], '-updates':[15000], '-batch':[32], '-nreplay':[15000], '-tau':[0.01, 0.005], '-nsteps':[1], '-lrc':[ 0.0005, 0.0001], '-n_hidden':[3], '-target_freq':[1,16,64]}
-    #elif tsc_str == 'sotl':
-    #    return {'-theta':[10,20,30,40,50], '-mu':[0,5,10,15], '-omega':[0,5,10,15]}
     if tsc_str == 'websters':
         return {'-cmin':[40, 60, 80], '-cmax':[160, 180, 200], '-satflow':[0.3, 0.38, 0.44], '-f':[600, 900]}
     elif tsc_str == 'maxpressure':
-        return {'-gmin':np.arange(,)}
+        return {'-gmin':np.arange(1,31)}
     elif tsc_str == 'uniform': 
-        return {'-gmin':np.arange(,)}
+        return {'-gmin':np.arange(1,53)}
     else:
         #raise not found exceptions
         assert 0, 'Error: Supplied traffic signal control argument type '+str(tsc_str)+' does not exist.'
@@ -123,6 +117,52 @@ def main():
     path = 'hyperparams/'+tsc_str+'/'
     check_and_make_dir(path)
     
+    # hp_optimize for real cycle
+    fname = 'real'
+    hp_fp = path+fname+'.csv'
+    write_line_to_file(hp_fp, 'a+', ','.join(hp_order)+',mean,std,mean+std' )
+    tt_hp = {} # store all travel_times for corresponding hp
+    for hp in hp_set:    
+        hp_cmds = create_hp_cmds(args, hp_order, hp)
+        #print(hp_cmds)
+        travel_times = []
+
+        if args.demand == 'linear':
+            assert False, 'demand should be real!!'
+        elif args.demand == 'dynamic':
+            assert False, 'demand should be real!!'
+        elif args.demand == 'real':
+            cmd_test = hp_cmds[-1] + ' -demand ' + 'real'
+        else:
+            assert False, 'Please only give demand: real'
+        os.system(cmd_test)
+        #read travel times, store mean and std for determining best hp set
+        hp_str = ','.join([str(h) for h in hp])
+        travel_times += get_hp_results(metrics_fp+'/traveltime/')
+        tt_hp[hp_str] = travel_times
+        # !!!!!!!!!! the travel_times is cumulated in 10 processes
+
+
+        n_v_pass = len(travel_times)
+        #remove all metrics for most recent hp
+        shutil.rmtree(metrics_fp)
+        hp_travel_times[hp_str] = {'mean':int(np.mean(travel_times)), 'std':int(np.std(travel_times)), 'n_v_pass':n_v_pass}
+        write_temp_hp(hp_str, hp_travel_times[hp_str], hp_fp)
+        #generate_returns(tsc_str, 'metrics/', hp_str)
+        save_hp_performance(travel_times, 'hp/'+tsc_str+'/', hp_str) 
+
+    #remove temp hp and write ranked final results
+    os.remove(hp_fp)
+    rank_hp(hp_travel_times, hp_order, tsc_str, hp_fp, tt_hp)
+    
+    print('All hyperparamers performance can be viewed at: '+str(hp_fp))
+
+    print('TOTAL HP SEARCH TIME')
+    secs = time.time()-start
+    print(str(int(secs/60.0))+' minutes ')
+    
+    
+    '''
     # hp_optimize for each linear cycle
     for idx_cycle in range(30):
         fname = 'cycle_'+str(idx_cycle).zfill(2)
@@ -184,22 +224,7 @@ def main():
         
         # ???? 找个地方把每个cycle 的best hyperparameter， mean, std, n_vehilce_passed 存起来
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+
         
         
         
@@ -208,6 +233,8 @@ def main():
         print('TOTAL HP SEARCH TIME')
         secs = time.time()-start
         print(str(int(secs/60.0))+' minutes ')
+    '''
+    
     '''
     #run each set of hp from cartesian product
     for hp in hp_set:    

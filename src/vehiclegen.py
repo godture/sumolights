@@ -34,10 +34,11 @@ class VehicleGen:
         self.mode = mode
         
         self.routes = self.conn.route.getIDList()
-        self.routes = [route for route in self.routes if route[0]=='r']
-        self.color_routes = {self.routes[0]: (0,255,0), self.routes[1]: (255,255,0), self.routes[2]: (255,0,0), self.routes[3]: (0,255,0), 
-                             self.routes[4]: (255,255,0), self.routes[5]: (255,0,0), self.routes[6]: (0,255,0), self.routes[7]: (255,255,0), 
-                             self.routes[8]: (255,0,0),self.routes[9]: (0,255,0), self.routes[10]: (255,255,0), self.routes[11]: (255,0,0)} # colors
+        self.routes = [route for route in self.routes if route[0]=='r' and route[1].isdigit()]
+        if len(self.routes) == 12:
+            self.color_routes = {self.routes[0]: (0,255,0), self.routes[1]: (255,255,0), self.routes[2]: (255,0,0), self.routes[3]: (0,255,0),
+                                 self.routes[4]: (255,255,0), self.routes[5]: (255,0,0), self.routes[6]: (0,255,0), self.routes[7]: (255,255,0),
+                                 self.routes[8]: (255,0,0),self.routes[9]: (0,255,0), self.routes[10]: (255,255,0), self.routes[11]: (255,0,0)} # colors
 
         ###determine what function we run every step to 
         ###generate vehicles into sim
@@ -45,7 +46,8 @@ class VehicleGen:
             self.gen_vehicles = self.gen_single
         elif demand == 'dynamic' or mode =='train':  # use the sine wave to train rl-tsc in framework
             #self.v_schedule = self.gen_dynamic_demand(mode)
-            self.gen_vehicles = self.gen_dynamic
+            #self.gen_vehicles = self.gen_dynamic
+            self.gen_vehicles = self.gen_dynamic_sine
         elif demand[:6] == 'linear':
             self.gen_vehicles = self.gen_linear_cycle
         elif demand == 'real':
@@ -57,6 +59,15 @@ class VehicleGen:
         self.t += 1
 
     def gen_dynamic(self):
+        ###get next set of edges from v schedule, use them to add new vehicles
+        ###this is batch vehicle generation
+        try:
+            new_veh_edges = next(self.v_schedule)
+            self.gen_veh( new_veh_edges  )
+        except StopIteration:
+            print('no vehicles left')
+        
+    def gen_dynamic_sine(self):
         # correct generating sine wave traffic cycle for both training and test
         t = np.linspace(1*np.pi, 2*np.pi, self.sim_len)
         sine = 5.1*np.sin(t)+6 # headway 0.9~6s, tf 4000~600vph
@@ -97,15 +108,7 @@ class VehicleGen:
             
         self.stop_gen = True
         
-        ###get next set of edges from v schedule, use them to add new vehicles
-        ###this is batch vehicle generation
-        '''
-        try:
-            new_veh_edges = next(self.v_schedule)
-            self.gen_veh( new_veh_edges  )
-        except StopIteration:
-            print('no vehicles left')
-        '''
+        
 #############################################################################
 
     def headway_j(self,flow_rate):
@@ -139,17 +142,16 @@ class VehicleGen:
     # only for test mode, not for training  
     def gen_fr_cycle(self, type):
         v_gen_file = None
+        root_dir   = os.getcwd()
         if type == "linear":
-            root_dir   = os.getcwd()
+            
             list_files = os.listdir(root_dir + "/tf_test/linear")
             list_files = [item for item in list_files if item[-3:]=='.vg']
             tf_level = list_files[0][:4]
             v_gen_file = open(root_dir + "/tf_test/linear/" + tf_level + '_' + self.demand[-2:]+'.vg', 'rb')
             #tf_file = open("/home/yan/work_spaces/sumolights/tf_test/linear/" + np.random.choice(list_files), 'rb')
         elif type == "real":
-            list_files = os.listdir(root_dir + "/tf_test/real")
-            list_files = [item for item in list_files if item[-3:]=='.vg']
-            v_gen_file = open(root_dir + "/tf_test/real/" + np.random.choice(list_files), 'rb')
+            v_gen_file = open(root_dir + "/tf_test/real/real.vg", 'rb')
         start_time_routes = pk.load(v_gen_file)
         print(f'################# v_gen_file is:\n {v_gen_file}')
         print(f'@@@@@@@@@@@@@ vehilce amount is: \n{sum([len(start_time_routes[key]) for key in start_time_routes])}')
