@@ -52,6 +52,8 @@ class VehicleGen:
             self.gen_vehicles = self.gen_linear_cycle
         elif demand == 'real':
             self.gen_vehicles = self.gen_real_cycle
+        elif demand == 'video':
+            self.gen_vehicles = self.gen_video_cycle
 
     def run(self):
         if not self.stop_gen:
@@ -152,6 +154,9 @@ class VehicleGen:
             #tf_file = open("/home/yan/work_spaces/sumolights/tf_test/linear/" + np.random.choice(list_files), 'rb')
         elif type == "real":
             v_gen_file = open(root_dir + "/tf_test/real/real.vg", 'rb')
+        elif type == 'video':
+            v_gen_file = open(root_dir + "/tf_test/sat.vg", 'rb')
+            #v_gen_file = open(root_dir + "/tf_test/linear/3000/3000_05.vg", 'rb')
         start_time_routes = pk.load(v_gen_file)
         print(f'################# v_gen_file is:\n {v_gen_file}')
         print(f'@@@@@@@@@@@@@ vehilce amount is: \n{sum([len(start_time_routes[key]) for key in start_time_routes])}')
@@ -180,6 +185,9 @@ class VehicleGen:
         
     def gen_real_cycle(self):
         self.gen_fr_cycle("real")
+        
+    def gen_video_cycle(self):
+        self.gen_fr_cycle("video")
         
         
 

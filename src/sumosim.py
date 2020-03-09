@@ -9,11 +9,16 @@ else:
 
 import traci
 import numpy as np
+import pickle
 
 from src.trafficsignalcontroller import TrafficSignalController
 from src.tsc_factory import tsc_factory
 from src.vehiclegen import VehicleGen
 from src.helper_funcs import write_to_log
+
+STEP_LEN_SIMU = 1.0 #0.5# 0.2 # simulation step length in second
+assert (1.0/STEP_LEN_SIMU).is_integer(), "Agent basic step length 1 second should be divisible by simulator step length."
+n_steps_second = int(1.0/STEP_LEN_SIMU)
 
 class SumoSim:
     def __init__(self, cfg_fp, sim_len, tsc, nogui, netdata, args, idx):
@@ -24,6 +29,10 @@ class SumoSim:
         self.netdata = netdata
         self.args = args
         self.idx = idx
+        self.n_screenshot = 0
+        self.tt_mean_second = [] # mean travel time till now for each second
+        self.tt_std_second = [] # std travel time till now for each second
+        
 
     def gen_sim(self):
         #create sim stuff and intersections
@@ -34,7 +43,7 @@ class SumoSim:
         sumoBinary = checkBinary(self.sumo_cmd)
         port = self.args.port+self.idx
         self.sumo_process = subprocess.Popen([sumoBinary, "-c",
-                                         self.cfg_fp, "--remote-port",
+                                         self.cfg_fp, "--step-length", str(STEP_LEN_SIMU), "--remote-port",
                                          str(port), "--no-warnings",
                                          "--no-step-log", "--random"],
                                          stdout=None, stderr=None)
@@ -52,23 +61,6 @@ class SumoSim:
                                          self.args.scale,
                                          self.args.mode, self.conn) 
 
-    def serverless_connect(self):
-        traci.start([self.sumo_cmd, 
-                     "-c", self.cfg_fp, 
-                     "--no-step-log", 
-                     "--no-warnings",
-                     "--random"])
-
-    def server_connect(self):
-        sumoBinary = checkBinary(self.sumo_cmd)
-        port = self.args.port+self.idx
-        sumo_process = subprocess.Popen([sumoBinary, "-c",
-                                         self.cfg_fp, "--remote-port",      
-                                         str(port), "--no-warnings",
-                                         "--no-step-log", "--random"],
-                                         stdout=None, stderr=None)
-
-        return traci.connect(port), sumo_process
 
     def get_traffic_lights(self):
         #find all the junctions with traffic lights
@@ -133,7 +125,22 @@ class SumoSim:
         return self.netdata
 
     def sim_step(self):
-        self.conn.simulationStep()
+        self.tt_mean_second += [np.mean(list(self.v_travel_times.values()))]
+        self.tt_std_second += [np.std(list(self.v_travel_times.values()))]
+        if self.t>1199:
+            file = open("/home/yan/work_spaces/tsc-rl/video/tt_mean.data", 'wb')
+            print(f'$$$$$$ tt_mean length is: {len(self.tt_mean_second)}')
+            pickle.dump(self.tt_mean_second, file)
+            file.close()
+            file = open("/home/yan/work_spaces/tsc-rl/video/tt_std.data", 'wb')
+            print(f'$$$$$$ tt_std length is: {len(self.tt_std_second)}')
+            pickle.dump(self.tt_std_second, file)
+            file.close()
+        for _ in range(n_steps_second):
+            self.conn.gui.screenshot("View #0", "/home/yan/work_spaces/tsc-rl/video/"+str(self.n_screenshot)+".jpg")
+            #print(f'$$$$$$$$$$ has view: {self.conn.gui.hasView("View #0")}')
+            self.n_screenshot += 1
+            self.conn.simulationStep()
         self.t += 1
 
     def run_offset(self, offset):

@@ -14,7 +14,7 @@ def parse_cl_args():
     parser.add_argument("-sumocfg", type=str, default='networks/double.sumocfg', dest='cfg_fp', help='path to desired simulation configuration file, default: networks/double.sumocfg' )
     parser.add_argument("-mode", type=str, default='train', dest='mode', help='reinforcement mode, train (agents receive updates) or test (no updates), default:train, options: train, test'  )
     parser.add_argument("-tsc", type=str, default='websters', dest='tsc', help='traffic signal control algorithm, default:websters; options:sotl, maxpressure, dqn, ddpg'  )
-    parser.add_argument("-simlen", type=int, default=3600*19, dest='sim_len', help='length of simulation in seconds/steps')
+    parser.add_argument("-simlen", type=int, default=None, dest='sim_len', help='length of simulation in seconds/steps')
     parser.add_argument("-nogui", default=False, action='store_true', dest='nogui', help='disable gui, default: False')
     parser.add_argument("-scale", type=float, default=1.4, dest='scale', help='vehicle generation scale parameter, higher values generates more vehicles, default: 1.0')
     parser.add_argument("-demand", type=str, default='dynamic', dest='demand', help='vehicle demand generation patter, single limits vehicle network population to one, dynamic creates changing vehicle population, default:dynamic, options:single, dynamic, linear, real')

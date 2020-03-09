@@ -185,10 +185,10 @@ def graph_travel_time(labels, colours, fp, save_dir):
                               title='Traffic Signal Controller\nTravel Time) ',     
                               legend=(0.82, 0.72),                                   
                               grid=True)                                             
-
+    print(f'min tt is: {min(min(data))}')
     for i, d in enumerate(data_order):
         text = '('+str(int(np.mean(data[i])))+', '+str(int( np.std(data[i]) ) )+', '+str(int( np.median(data[i]) ) )+r"$)$"
-        ax.text(i+1.1, 10, text, color= c[i])
+        ax.text(i+1.1, 20, text, color= c[i])
 
     #f.suptitle('Travel Time')                                                        
     #display graph                                                                   

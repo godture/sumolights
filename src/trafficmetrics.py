@@ -8,6 +8,7 @@ else:
     sys.exit("please declare environment variable 'SUMO_HOME'")
 
 import traci
+import pickle
 
 class TrafficMetrics:
     def __init__(self, _id, incoming_lanes, netdata, metric_args, mode):
@@ -53,6 +54,8 @@ class DelayMetric(TrafficMetric):
         self.old_v = set()
         self.v_info = {}
         self.t = 0
+        self.throughput = []
+        self.throughput_last = 0
 
     def get_v_delay(self, v):
         return ( self.t - self.v_info[v]['t'] ) - self.lane_travel_times[self.v_info[v]['lane']]
@@ -84,7 +87,16 @@ class DelayMetric(TrafficMetric):
             self.history.append(self.get_metric())
 
         #remove vehicles that have left incoming lanes
+        
         remove_vehicles = self.old_v - new_v
+        self.throughput.append(len(remove_vehicles)+self.throughput_last)
+        self.throughput_last = self.throughput[-1]
+        if self.t>1199:
+            print(f'######### throughput length is: {len(self.throughput)}')
+            file = open("/home/yan/work_spaces/tsc-rl/video/tp.data", 'wb')
+            pickle.dump(self.throughput, file)
+            file.close()
+        
         delay = 0
         for v in remove_vehicles:
             del self.v_info[v]
